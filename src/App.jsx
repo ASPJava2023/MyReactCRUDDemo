@@ -116,8 +116,6 @@ function App() {
       console.error("Error deleting post:", error)
     }
   };
-      }
-  };
    //Function to handle delet with confirmation
    const handleDelete =(post)=>{
 
