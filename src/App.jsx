@@ -1,6 +1,7 @@
 
 import './App.css'
-import { useState,useEffect } from 'react'
+import { useState, useEffect } from 'react'
+import apiService from './services/apiService'
 
 function App() {
   //use state to strore the post
@@ -42,77 +43,42 @@ function App() {
  //fuction to fetch all post from API
     const fetchPosts = async()=>{
       try{
-        setLoading(true) //set loading to true before fetching data
-        //clear any previous error
+        setLoading(true)
         setError(null)
-        //fetch data from API
-        const response = await fetch('https://jsonplaceholder.typicode.com/posts');  
-
-        //check the response is successful or not
-        if(!response.ok){
-          setError("Failed to fetch posts. Please try again later.")
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        //convert response to json
-        const data = await response.json();
-        //update the posts state with fetched data
+        const data = await apiService.fetchPosts()
         setPosts(data)
-        setLoading(false) //set loading to false after data is fetched  
-        
       }
       catch(error){
-        //if any error occurs during fetching, set the error state
-        setError("Failed to fetch posts. Please try again later.")
+        setError(error.message)
         console.error("Error fetching posts:", error)
       }
       finally{
-        setLoading(false) //set loading to false in finally block to ensure it runs regardless of success or failure
+        setLoading(false)
       }
     };
     //Fuction to create a new post 
     const createPost= async(postData)=>{
       try{
-        //set submitting to true when form submission starts
         setSubmitting(true)
-        //clear any previous error
         setError(null)
-        //send POST request to API to create a new post
-        const response =await fetch('https://jsonplaceholder.typicode.com/posts',{
-          method:'POST',
-          headers:{
-            'Content-Type':'application/json'},
-            body:JSON.stringify(postData)
-        });
-        //check if the response is successful
-        if(!response.ok){
-          setError("Failed to create post. Please try again later.")
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        //Get the created post data from response
-        const createdPost = await response.json();
-
-        //Add the create post to the beginning of the posts array
+        const createdPost = await apiService.createPost(postData)
         setPosts(previewvPosts=>[createdPost,...previewvPosts])
-
-        //Rest the new post form
         setNewPost({
           title: '',
           body: '',
           userId: 1
         })
-        //Hide the form after successful submission
         setShowForm(false)
         console.log("Post created successfully:", createdPost)
       }
       catch(error){
-        setError("Failed to create post. Please try again later.")
+        setError(error.message)
         console.error("Error creating post:", error)
       }
       finally{
-        setSubmitting(false) //set submitting to false in finally block to ensure it runs regardless of success or failure
+        setSubmitting(false)
       }
-    }
+    };
     //fuction to handle form submission
     const handleFormSubmission=(e)=>
 {
@@ -139,28 +105,19 @@ function App() {
   }
   //Fuction to delete a post
   const deletePost = async(PostId)=>{
-
     try{
-      setError(null) //clear any previous error
-      const response = await fetch(`https://jsonplaceholder.typicode.com/posts/${PostId}`,{
-        method:'DELETE'
-      })  
-      if(!response.ok){
-        throw new Error(`HTTP error! status: ${response.status}`);
+      setError(null)
+      await apiService.deletePost(PostId)
+      setPosts(posts=>posts.filter(post=>post.id!==PostId))
+      console.log("Post deleted successfully")
+    }
+    catch(error){
+      setError(error.message)
+      console.error("Error deleting post:", error)
+    }
+  };
       }
-      //remove the deleted post from the posts array
-      setPosts(prevPosts=>prevPosts.filter(post=>post.id!==PostId))
-      console.log(`Post with ID ${PostId} deleted successfully.`)
-    }
-    catch(err){
-      setError("Failed to delete post. Please try again later.")
-      console.error("Error deleting post:", err)
-
-    }
-    finally {
-      setSubmitting(false) //set submitting to false in finally block to ensure it runs regardless of success or failure
-    }
-   };
+  };
    //Function to handle delet with confirmation
    const handleDelete =(post)=>{
 
@@ -175,43 +132,27 @@ function App() {
 
    }
    //Fuction to upate a post 
-
    const updatePost = async(postId,updatedData)=>{
     try{
-      setUpdating(true) //set updating to true when update starts
-      setError(null) //clear any previous error
-
-      const response =await fetch(`https://jsonplaceholder.typicode.com/posts/${postId}`,
-        {method:'PUT',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({id:postId,...updatedData,userId:1})}
-      );
-      if(!response.ok){
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const updatedPost = await response.json();
-
-      //Update the post in the posts array
-      setPosts(prevPosts=>prevPosts.map(post=>post.id===postId?{...post,...updatedData}:post)
-    );
-
-    //Exit editing mode after successful update
-    setEditingPost(null)
-    setEditForm({
-      title: '',
-      body: ''
-    })
-    console.log("Post updated successfully:", updatedPost)
-  }
-       
-      catch(error){
-        setError("Failed to update post. Please try again later.")
-        console.error("Error updating post:", error)
-      }
-      finally{
-        setUpdating(false) //set updating to false in finally block to ensure it runs regardless of success or failure
-      }
-     };
+      setUpdating(true)
+      setError(null)
+      const updatedPost = await apiService.updatePost(postId, {...updatedData, userId: 1})
+      setPosts(prevPosts=>prevPosts.map(post=>post.id===postId?{...post,...updatedData}:post))
+      setEditingPost(null)
+      setEditForm({
+        title: '',
+        body: ''
+      })
+      console.log("Post updated successfully:", updatedPost)
+    }
+    catch(error){
+      setError(error.message)
+      console.error("Error updating post:", error)
+    }
+    finally{
+      setUpdating(false)
+    }
+   };
   
     //Fuction to start editing a post
     const startEditing =(post)=>{
